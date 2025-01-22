@@ -157,5 +157,9 @@ def search():
     conn.close()
     return jsonify(filtered_results)
 
+@app.route('/statistics')
+def statistics():
+    return render_template('statistics.html')
+
 if __name__ == '__main__':
     app.run(debug=True)
