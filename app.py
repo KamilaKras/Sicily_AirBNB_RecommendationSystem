@@ -1,0 +1,161 @@
+from flask import Flask, render_template, request, jsonify, url_for
+from search_engine import SearchEngine
+import os
+import json
+import sqlite3
+
+app = Flask(__name__)
+search_engine = SearchEngine()
+
+def get_filter_options():
+    conn = sqlite3.connect('airbnb.db')
+    cursor = conn.cursor()
+    
+    # Get unique values for each filter
+    filters = {
+        'host_response_time': [],
+        'neighbourhood_cleansed': [],
+        'property_type': [],
+        'room_type': [],
+        'amenities': []
+    }
+    
+    for column in filters.keys():
+        if column != 'amenities':
+            cursor.execute(f'SELECT DISTINCT {column} FROM truncated_listings WHERE {column} IS NOT NULL')
+            filters[column] = [row[0] for row in cursor.fetchall()]
+        else:
+            # For amenities, get the most common ones
+            cursor.execute('SELECT amenities FROM truncated_listings LIMIT 1')
+            sample_amenities = json.loads(cursor.fetchone()[0])
+            filters['amenities'] = list(set(sample_amenities))[:20]  # Take top 20 amenities
+    
+    # Get min and max values for numeric fields
+    numeric_ranges = {}
+    for field in ['price', 'review_scores_rating', 'accommodates', 'bedrooms', 'beds']:
+        cursor.execute(f'SELECT MIN({field}), MAX({field}) FROM truncated_listings WHERE {field} IS NOT NULL')
+        min_val, max_val = cursor.fetchone()
+        numeric_ranges[field] = {'min': min_val, 'max': max_val}
+    
+    conn.close()
+    return filters, numeric_ranges
+
+@app.route('/')
+def index():
+    filters, numeric_ranges = get_filter_options()
+    similarity_metrics = ['cosine', 'jaccard', 'dice', 'product']
+    
+    # Use absolute path for photos directory
+    photos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'Sicily_photo')
+    
+    # Create the directory if it doesn't exist
+    if not os.path.exists(photos_dir):
+        os.makedirs(photos_dir)
+    
+    # Get list of photos if any exist, otherwise use an empty list
+    try:
+        photo_files = [f for f in os.listdir(photos_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    except Exception as e:
+        print(f"Error reading photos directory: {e}")
+        photo_files = []
+    
+    return render_template('index.html', 
+                         filters=filters, 
+                         numeric_ranges=numeric_ranges,
+                         similarity_metrics=similarity_metrics,
+                         photos=photo_files)
+
+@app.route('/search', methods=['POST'])
+def search():
+    data = request.json
+    query = data.get('query', '')
+    filters = data.get('filters', {})
+    
+    # Update search engine similarity measure if provided
+    similarity_metric = filters.get('similarity_metric', 'cosine')
+    if similarity_metric != search_engine.similarity_measure:
+        search_engine.similarity_measure = similarity_metric
+    
+    # Perform the search
+    results = search_engine.search(query)
+    
+    # Apply filters to results
+    filtered_results = []
+    conn = sqlite3.connect('airbnb.db')
+    cursor = conn.cursor()
+    
+    for result in results:
+        listing_id = result['listing_id']
+        similarity_score = result['similarity_score']
+        
+        # Build dynamic query based on filters
+        query_conditions = ['id = ?']
+        query_params = [listing_id]
+        
+        for key, value in filters.items():
+            if key == 'similarity_metric':
+                continue
+            
+            if key.endswith('_range'):
+                field = key[:-6]  # Remove '_range' suffix
+                min_val, max_val = value
+                if min_val is not None:
+                    query_conditions.append(f'{field} >= ?')
+                    query_params.append(min_val)
+                if max_val is not None:
+                    query_conditions.append(f'{field} <= ?')
+                    query_params.append(max_val)
+            elif value:
+                if key == 'amenities':
+                    # Handle amenities separately as they're stored as JSON
+                    amenities_conditions = []
+                    for amenity in value:
+                        amenities_conditions.append(f"json_array_contains(amenities, ?)")
+                        query_params.append(amenity)
+                    if amenities_conditions:
+                        query_conditions.append(f"({' AND '.join(amenities_conditions)})")
+                else:
+                    query_conditions.append(f'{key} = ?')
+                    query_params.append(value)
+        
+        # Execute query
+        query = f'''
+            SELECT id, name, host_response_time, neighbourhood_cleansed, 
+                   property_type, room_type, accommodates, bathrooms_text, 
+                   bedrooms, beds, amenities, review_scores_rating, price,
+                   listing_url, description
+            FROM truncated_listings 
+            WHERE {" AND ".join(query_conditions)}
+        '''
+        cursor.execute(query, query_params)
+        listing = cursor.fetchone()
+        
+        if listing:
+            # Create a default image URL using the Sicily photo
+            default_image_url = url_for('static', filename='Sicily_photo/Sicily_photo.jpg')
+            
+            filtered_results.append({
+                'id': listing[0],
+                'name': listing[1],
+                'host_response_time': listing[2],
+                'neighbourhood': listing[3],
+                'property_type': listing[4],
+                'room_type': listing[5],
+                'accommodates': listing[6],
+                'bathrooms': listing[7],
+                'bedrooms': listing[8],
+                'beds': listing[9],
+                'amenities': json.loads(listing[10]),
+                'review_scores_rating': listing[11],
+                'price': listing[12],
+                'listing_url': listing[13],
+                'description': listing[14],
+                'picture_url': default_image_url,  # Use the default image
+                'similarity_score': similarity_score
+            })
+    
+    conn.close()
+    return jsonify(filtered_results)
+
+if __name__ == '__main__':
+    app.run(debug=True)
