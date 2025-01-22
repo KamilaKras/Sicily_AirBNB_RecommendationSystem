@@ -1,11 +1,23 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded');
     const searchInput = document.getElementById('search-input');
     const searchButton = document.getElementById('search-button');
     const resultsContainer = document.getElementById('results-container');
 
-    searchButton.addEventListener('click', performSearch);
+    console.log('Elements found:', {
+        searchInput: !!searchInput,
+        searchButton: !!searchButton,
+        resultsContainer: !!resultsContainer
+    });
+
+    searchButton.addEventListener('click', function() {
+        console.log('Search button clicked');
+        performSearch();
+    });
+    
     searchInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
+            console.log('Enter key pressed');
             performSearch();
         }
     });
@@ -14,40 +26,48 @@ document.addEventListener('DOMContentLoaded', function() {
         const filters = {};
         
         // Get similarity metric
-        filters.similarity_metric = document.getElementById('similarity-metric').value;
+        const similarityMetric = document.getElementById('similarity-metric');
+        if (similarityMetric) {
+            filters.similarity_metric = similarityMetric.value;
+        }
 
         // Get numeric range filters
         const numericFields = ['price', 'review_scores_rating', 'accommodates', 'bedrooms', 'beds'];
         numericFields.forEach(field => {
-            const minVal = document.getElementById(`${field}-min`).value;
-            const maxVal = document.getElementById(`${field}-max`).value;
-            if (minVal || maxVal) {
-                filters[`${field}_range`] = [
-                    minVal ? parseFloat(minVal) : null,
-                    maxVal ? parseFloat(maxVal) : null
-                ];
+            const minElement = document.getElementById(`${field}-min`);
+            const maxElement = document.getElementById(`${field}-max`);
+            if (minElement || maxElement) {
+                const minVal = minElement ? minElement.value : null;
+                const maxVal = maxElement ? maxElement.value : null;
+                if (minVal || maxVal) {
+                    filters[`${field}_range`] = [
+                        minVal ? parseFloat(minVal) : null,
+                        maxVal ? parseFloat(maxVal) : null
+                    ];
+                }
             }
         });
 
-        // Get categorical filters
-        ['host_response_time', 'neighbourhood_cleansed', 'property_type', 'room_type'].forEach(field => {
-            const value = document.getElementById(field).value;
-            if (value) {
-                filters[field] = value;
+        // Get categorical filters - only if they exist
+        const categoricalFields = ['host_response_time', 'neighbourhood_cleansed', 'property_type', 'room_type'];
+        categoricalFields.forEach(field => {
+            const element = document.getElementById(field);
+            if (element && element.value) {
+                filters[field] = element.value;
             }
         });
 
-        // Get selected amenities
-        const selectedAmenities = Array.from(document.querySelectorAll('.amenity-checkbox:checked'))
-            .map(checkbox => checkbox.value);
-        if (selectedAmenities.length > 0) {
-            filters.amenities = selectedAmenities;
+        // Get selected amenities - only if they exist
+        const amenityCheckboxes = document.querySelectorAll('.amenity-checkbox:checked');
+        if (amenityCheckboxes.length > 0) {
+            filters.amenities = Array.from(amenityCheckboxes).map(checkbox => checkbox.value);
         }
 
         return filters;
     }
 
     function performSearch() {
+        console.log('Performing search');
         const query = searchInput.value.trim();
         if (!query) {
             alert('Please enter a search query');
@@ -55,10 +75,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const filters = getFilters();
+        console.log('Filters:', filters);
         
         // Show loading state
         resultsContainer.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
 
+        console.log('Sending fetch request to /search');
         fetch('/search', {
             method: 'POST',
             headers: {
@@ -69,8 +91,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 filters: filters
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Got response:', response.status);
+            return response.json();
+        })
         .then(results => {
+            console.log('Got results:', results);
             displayResults(results);
         })
         .catch(error => {

@@ -13,10 +13,54 @@
                 <div class="filter-section">
                     <label for="similarity-metric">Similarity Metric</label>
                     <select id="similarity-metric" class="form-select">
-                        <option value="cosine">Cosine</option>
+                        {% for metric in similarity_metrics %}
+                        <option value="{{ metric }}">{{ metric|title }}</option>
+                        {% endfor %}
                     </select>
                 </div>
 
+                <!-- Categorical Filters -->
+                <div class="filter-section">
+                    <label for="host_response_time">Host Response Time</label>
+                    <select id="host_response_time" class="form-select">
+                        <option value="">Any</option>
+                        {% for option in filters.host_response_time %}
+                        <option value="{{ option }}">{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-section">
+                    <label for="neighbourhood_cleansed">Neighborhood</label>
+                    <select id="neighbourhood_cleansed" class="form-select">
+                        <option value="">Any</option>
+                        {% for option in filters.neighbourhood_cleansed %}
+                        <option value="{{ option }}">{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-section">
+                    <label for="property_type">Property Type</label>
+                    <select id="property_type" class="form-select">
+                        <option value="">Any</option>
+                        {% for option in filters.property_type %}
+                        <option value="{{ option }}">{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-section">
+                    <label for="room_type">Room Type</label>
+                    <select id="room_type" class="form-select">
+                        <option value="">Any</option>
+                        {% for option in filters.room_type %}
+                        <option value="{{ option }}">{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Numeric Filters -->
                 <div class="filter-section">
                     <label>Price</label>
                     <div class="range-inputs">
@@ -56,9 +100,21 @@
                         <input type="number" id="beds-max" class="form-control" placeholder="Max">
                     </div>
                 </div>
-            </div>
-        </div>
 
+                <!-- Amenities -->
+                <div class="filter-section">
+                    <label>Amenities</label>
+                    <div class="amenities-container">
+                        {% for amenity in filters.amenities %}
+                        <div class="form-check">
+                            <input class="form-check-input amenity-checkbox" type="checkbox" value="{{ amenity }}" id="amenity-{{ loop.index }}">
+                            <label class="form-check-label" for="amenity-{{ loop.index }}">{{ amenity }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div> <!-- Close .filters-container -->
+        </div> <!-- Close .sidebar -->
         <!-- Main Content -->
         <div class="col-md-9 main-content">
             <!-- Photo Carousel -->
