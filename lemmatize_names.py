@@ -1,13 +1,13 @@
 import nltk
-nltk.download('punkt_tab')
-nltk.download('punkt')
-nltk.download('averaged_perceptron_tagger_eng')
-nltk.download('wordnet')
+#nltk.download('punkt_tab')
+#nltk.download('punkt')
+#nltk.download('averaged_perceptron_tagger_eng')
+#nltk.download('wordnet')
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
 from nltk.corpus import stopwords
-nltk.download('stopwords')
+#nltk.download('stopwords')
 
 def get_wordnet_pos(word):
     """Map POS tag to first character lemmatize() accepts"""
