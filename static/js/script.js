@@ -86,11 +86,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         resultsContainer.innerHTML = results.map(listing => `
-            <div class="col-md-6 col-lg-4">
+            <div class="col-sm-6 col-lg-4">
                 <div class="card listing-card">
-                    <img src="${listing.picture_url || 'https://via.placeholder.com/300x200?text=No+Image'}" 
-                         class="card-img-top listing-image" 
-                         alt="${listing.name}">
                     <div class="card-body">
                         <h5 class="card-title">
                             <a href="${listing.listing_url}" target="_blank" class="text-decoration-none">
@@ -98,35 +95,26 @@ document.addEventListener('DOMContentLoaded', function() {
                             </a>
                         </h5>
                         <p class="card-text description-text">
-                            ${listing.description ? listing.description.substring(0, 150) + '...' : 'No description available'}
+                            ${listing.description ? listing.description.substring(0, 100) + '...' : 'No description available'}
                         </p>
-                        <p class="card-text">
-                            <span class="price">€${listing.price}/night</span><br>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="price">€${listing.price}/night</span>
                             <span class="rating">★ ${listing.review_scores_rating || 'N/A'}</span>
-                        </p>
+                        </div>
                         <p class="card-text">
                             <small class="text-muted">
                                 ${listing.property_type} · ${listing.room_type}<br>
-                                ${listing.accommodates} guests · ${listing.bedrooms || '?'} bedrooms · ${listing.beds || '?'} beds
-                            </small>
-                        </p>
-                        <p class="card-text">
-                            <small class="text-muted">
-                                ${listing.neighbourhood}<br>
-                                Response time: ${listing.host_response_time || 'N/A'}
+                                ${listing.accommodates} guests · ${listing.bedrooms || '?'} bed
                             </small>
                         </p>
                         <div class="amenities">
-                            ${listing.amenities.slice(0, 5).map(amenity => 
+                            ${listing.amenities.slice(0, 3).map(amenity => 
                                 `<span class="badge bg-secondary amenity-badge">${amenity}</span>`
                             ).join('')}
-                            ${listing.amenities.length > 5 ? 
-                                `<span class="badge bg-secondary amenity-badge">+${listing.amenities.length - 5} more</span>` : 
+                            ${listing.amenities.length > 3 ? 
+                                `<span class="badge bg-secondary amenity-badge">+${listing.amenities.length - 3} more</span>` : 
                                 ''}
                         </div>
-                        <p class="card-text mt-2">
-                            <small class="text-muted">Similarity: ${(listing.similarity_score * 100).toFixed(1)}%</small>
-                        </p>
                     </div>
                 </div>
             </div>
