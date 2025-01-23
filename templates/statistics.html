@@ -2,11 +2,95 @@
 
 {% block title %}Sicily Airbnb - Database Statistics{% endblock %}
 
+{% block extra_css %}
+<style>
+    .chart-container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px auto;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        max-width: 1200px;
+    }
+    .chart-title {
+        color: #2d3748;
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 24px;
+    }
+    .stats-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stats-title {
+        color: #2d3748;
+        margin-bottom: 15px;
+        font-size: 20px;
+    }
+    .stats-value {
+        font-size: 16px;
+        color: #4a5568;
+        margin-bottom: 10px;
+    }
+    .stats-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stats-title {
+        color: #2d3748;
+        margin-bottom: 15px;
+        font-size: 20px;
+    }
+    .stats-value {
+        font-size: 16px;
+        color: #4a5568;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <h1 class="mb-4">Database Statistics</h1>
-    <div class="alert alert-info">
-        This page is under construction. Statistics about the Airbnb database will be available here soon.
+
+    <!-- Database Info -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="stats-card">
+                <h5 class="stats-title">Database Overview</h5>
+                <div class="stats-value">
+                    <strong>Total Records:</strong> {{ data.total_rows }}<br>
+                    <strong>Number of Columns:</strong> {{ data.total_columns }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Word Cloud -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="chart-container">
+                <h3 class="chart-title">Most Common Words in Listing Names</h3>
+                <div id="wordCloud"></div>
+            </div>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="{{ url_for('static', filename='js/statistics.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const data = {{ data | tojson | safe }};
+        initializeCharts(data);
+    });
+</script>
 {% endblock %}

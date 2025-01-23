@@ -7,8 +7,12 @@ import sqlite3
 app = Flask(__name__)
 search_engine = SearchEngine()
 
-def get_filter_options():
+def get_db_connection():
     conn = sqlite3.connect('airbnb.db')
+    return conn
+
+def get_filter_options():
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     # Get unique values for each filter
@@ -81,7 +85,7 @@ def search():
     
     # Apply filters to results
     filtered_results = []
-    conn = sqlite3.connect('airbnb.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     for result in results:
@@ -186,7 +190,74 @@ def search():
 
 @app.route('/statistics')
 def statistics():
-    return render_template('statistics.html')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Generate word cloud if it doesn't exist
+    if not os.path.exists('static/data/wordcloud_data.json'):
+        from generate_wordcloud import generate_wordcloud
+        generate_wordcloud()
+
+    # Get database statistics
+    cursor.execute("SELECT COUNT(*) FROM truncated_listings")
+    total_rows = cursor.fetchone()[0]
+
+    cursor.execute("PRAGMA table_info(truncated_listings)")
+    total_columns = len(cursor.fetchall())
+
+    # Get price data
+    cursor.execute("SELECT price FROM truncated_listings WHERE price < 1000")
+    prices = [row[0] for row in cursor.fetchall()]
+
+    # Get property types
+    cursor.execute("""
+        SELECT property_type, COUNT(*) as count 
+        FROM truncated_listings 
+        GROUP BY property_type 
+        ORDER BY count DESC 
+        LIMIT 10
+    """)
+    property_types_data = cursor.fetchall()
+    property_types = [row[0] for row in property_types_data]
+    property_type_counts = [row[1] for row in property_types_data]
+
+    # Get room types
+    cursor.execute("""
+        SELECT room_type, COUNT(*) as count 
+        FROM truncated_listings 
+        GROUP BY room_type
+    """)
+    room_types_data = cursor.fetchall()
+    room_types = [row[0] for row in room_types_data]
+    room_type_counts = [row[1] for row in room_types_data]
+
+    # Get top amenities
+    cursor.execute("""
+        SELECT amenities, COUNT(*) as count 
+        FROM truncated_listings 
+        GROUP BY amenities 
+        ORDER BY count DESC 
+        LIMIT 15
+    """)
+    amenities_data = cursor.fetchall()
+    amenities = [row[0] for row in amenities_data]
+    amenity_counts = [row[1] for row in amenities_data]
+
+    conn.close()
+
+    data = {
+        'total_rows': total_rows,
+        'total_columns': total_columns,
+        'prices': prices,
+        'propertyTypes': property_types,
+        'propertyTypeCounts': property_type_counts,
+        'roomTypes': room_types,
+        'roomTypeCounts': room_type_counts,
+        'topAmenities': amenities,
+        'amenityCounts': amenity_counts
+    }
+
+    return render_template('statistics.html', data=data)
 
 if __name__ == '__main__':
     app.run(debug=True)
