@@ -123,7 +123,14 @@ def search():
             SELECT id, name, host_response_time, neighbourhood_cleansed, 
                    property_type, room_type, accommodates, bathrooms_text, 
                    bedrooms, beds, amenities, review_scores_rating, price,
-                   listing_url, description
+                   listing_url, description, neighborhood_overview,
+                   minimum_nights, maximum_nights,
+                   host_name, host_since, host_location, host_about,
+                   host_response_time, host_response_rate, host_acceptance_rate,
+                   host_is_superhost, host_listings_count, host_identity_verified,
+                   number_of_reviews, review_scores_accuracy, review_scores_cleanliness,
+                   review_scores_checkin, review_scores_communication,
+                   review_scores_location, review_scores_value
             FROM truncated_listings 
             WHERE {" AND ".join(query_conditions)}
         '''
@@ -150,6 +157,26 @@ def search():
                 'price': listing[12],
                 'listing_url': listing[13],
                 'description': listing[14],
+                'neighborhood_overview': listing[15],
+                'minimum_nights': listing[16],
+                'maximum_nights': listing[17],
+                'host_name': listing[18],
+                'host_since': listing[19],
+                'host_location': listing[20],
+                'host_about': listing[21],
+                'host_response_time': listing[22],
+                'host_response_rate': listing[23],
+                'host_acceptance_rate': listing[24],
+                'host_is_superhost': listing[25],
+                'host_listings_count': listing[26],
+                'host_identity_verified': listing[27],
+                'number_of_reviews': listing[28],
+                'review_scores_accuracy': listing[29],
+                'review_scores_cleanliness': listing[30],
+                'review_scores_checkin': listing[31],
+                'review_scores_communication': listing[32],
+                'review_scores_location': listing[33],
+                'review_scores_value': listing[34],
                 'picture_url': default_image_url,  # Use the default image
                 'similarity_score': similarity_score
             })
