@@ -143,7 +143,7 @@ def search():
             SELECT id, name, host_response_time, neighbourhood_cleansed, 
                    property_type, room_type, accommodates, bathrooms_text, 
                    bedrooms, beds, amenities, review_scores_rating, price,
-                   listing_url, description, neighborhood_overview,
+                   listing_url, description_en, neighborhood_overview,
                    minimum_nights, maximum_nights,
                    host_name, host_since, host_location, host_about,
                    host_response_time, host_response_rate, host_acceptance_rate,
@@ -176,7 +176,7 @@ def search():
                 'review_scores_rating': listing[11],
                 'price': f"€{listing[12]} per night",  # Add currency symbol and clarify it's per night
                 'listing_url': listing[13],
-                'description': listing[14],
+                'description': listing[14] or "No English description available.",  # Use description_en and provide fallback text
                 'neighborhood_overview': listing[15],
                 'minimum_nights': listing[16],
                 'maximum_nights': listing[17],
