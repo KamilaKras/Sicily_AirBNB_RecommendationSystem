@@ -61,7 +61,7 @@ def get_filter_options():
 @app.route('/')
 def index():
     filters, numeric_ranges = get_filter_options()
-    similarity_metrics = ['cosine', 'jaccard', 'dice', 'product']
+    similarity_metrics = ['cosine', 'jaccard', 'dice']
     
     # Use absolute path for photos directory
     photos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'Sicily_photo')

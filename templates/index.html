@@ -11,7 +11,7 @@
             <div class="filters-container">
                 <!-- Filters -->
                 <div class="filter-section">
-                    <label for="similarity-metric">Similarity Metric</label>
+                    <label for="similarity-metric">Similarity metric</label>
                     <select id="similarity-metric" class="form-select">
                         {% for metric in similarity_metrics %}
                         <option value="{{ metric }}">{{ metric|title }}</option>
@@ -21,7 +21,7 @@
 
                 <!-- Categorical Filters -->
                 <div class="filter-section">
-                    <label for="host_response_time">Host Response Time</label>
+                    <label for="host_response_time">Host response time</label>
                     <select id="host_response_time" class="form-select">
                         <option value="">Any</option>
                         {% for option in filters.host_response_time %}
@@ -31,7 +31,7 @@
                 </div>
 
                 <div class="filter-section">
-                    <label for="neighbourhood_cleansed">Neighborhood</label>
+                    <label for="neighbourhood_cleansed">Neighbourhood</label>
                     <select id="neighbourhood_cleansed" class="form-select">
                         <option value="">Any</option>
                         {% for option in filters.neighbourhood_cleansed %}
@@ -41,7 +41,7 @@
                 </div>
 
                 <div class="filter-section">
-                    <label for="property_type">Property Type</label>
+                    <label for="property_type">Property type</label>
                     <select id="property_type" class="form-select">
                         <option value="">Any</option>
                         {% for option in filters.property_type %}
@@ -51,7 +51,7 @@
                 </div>
 
                 <div class="filter-section">
-                    <label for="room_type">Room Type</label>
+                    <label for="room_type">Room type</label>
                     <select id="room_type" class="form-select">
                         <option value="">Any</option>
                         {% for option in filters.room_type %}
@@ -70,7 +70,7 @@
                 </div>
 
                 <div class="filter-section">
-                    <label>Review Scores Rating</label>
+                    <label>Review scores rating</label>
                     <div class="range-inputs">
                         <input type="number" id="rating-min" class="form-control" placeholder="Min">
                         <input type="number" id="rating-max" class="form-control" placeholder="Max">

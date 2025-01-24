@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <h6>Description</h6>
                                 <p>${result.description}</p>
 
-                                <h6>Neighborhood Overview</h6>
+                                <h6>Neighborhood overview</h6>
                                 <p>${result.neighborhood_overview || 'No neighborhood overview available.'}</p>
                                 
                                 <div class="additional-details">
@@ -156,36 +156,36 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <strong>Bedrooms:</strong> ${result.bedrooms || 'N/A'}<br>
                                         <strong>Beds:</strong> ${result.beds || 'N/A'}<br>
                                         <strong>Bathrooms:</strong> ${result.bathrooms || 'N/A'}<br>
-                                        <strong>Minimum Nights:</strong> ${result.minimum_nights}<br>
-                                        <strong>Maximum Nights:</strong> ${result.maximum_nights}<br>
+                                        <strong>Minimum nights:</strong> ${result.minimum_nights}<br>
+                                        <strong>Maximum nights:</strong> ${result.maximum_nights}<br>
                                     </p>
                                 </div>
                                 
-                                <h6>All Amenities</h6>
+                                <h6>All amenities</h6>
                                 <div class="all-amenities">
                                     ${result.amenities.map(amenity => 
                                         `<span class="badge bg-secondary me-1 mb-1">${amenity}</span>`
                                     ).join('')}
                                 </div>
 
-                                <h6 class="mt-4">Host Information</h6>
+                                <h6 class="mt-4">Host information</h6>
                                 <div class="host-info mb-3">
                                     <div class="host-header d-flex align-items-center mb-2">
                                         <h6 class="mb-0">Hosted by ${result.host_name}</h6>
                                         ${result.host_is_superhost ? '<span class="badge bg-success ms-2">Superhost</span>' : ''}
                                     </div>
                                     <p class="mb-2">
-                                        <strong>Host Since:</strong> ${result.host_since || 'Not specified'}<br>
+                                        <strong>Host since:</strong> ${result.host_since || 'Not specified'}<br>
                                         <strong>Location:</strong> ${result.host_location || 'Not specified'}<br>
-                                        <strong>Response Time:</strong> ${result.host_response_time || 'Not specified'}<br>
-                                        <strong>Response Rate:</strong> ${result.host_response_rate || 'Not specified'}<br>
-                                        <strong>Acceptance Rate:</strong> ${result.host_acceptance_rate || 'Not specified'}<br>
-                                        <strong>Total Listings:</strong> ${result.host_listings_count || '0'}<br>
-                                        <strong>Identity Verified:</strong> ${result.host_identity_verified ? 'Yes' : 'No'}
+                                        <strong>Response time:</strong> ${result.host_response_time || 'Not specified'}<br>
+                                        <strong>Response rate:</strong> ${result.host_response_rate || 'Not specified'}<br>
+                                        <strong>Acceptance rate:</strong> ${result.host_acceptance_rate || 'Not specified'}<br>
+                                        <strong>Total listings:</strong> ${result.host_listings_count || '0'}<br>
+                                        <strong>Identity verified:</strong> ${result.host_identity_verified ? 'Yes' : 'No'}
                                     </p>
                                     ${result.host_about ? `
                                         <div class="host-about">
-                                            <strong>About the Host:</strong>
+                                            <strong>About the host:</strong>
                                             <p class="mb-0">${result.host_about}</p>
                                         </div>
                                     ` : ''}
