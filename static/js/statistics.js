@@ -1,22 +1,46 @@
 // Function to create word cloud
-function createWordCloud(words, frequencies) {
+function createWordCloud() {
     // Clear previous word cloud
-    d3.select("#wordCloud").html("");
+    const wordCloudContainer = d3.select("#wordCloud");
+    wordCloudContainer.html("");
     
-    // Create container
-    const container = d3.select("#wordCloud")
+    // Add loading indicator
+    const loadingDiv = wordCloudContainer
+        .append("div")
+        .style("text-align", "center")
+        .style("padding", "20px")
+        .text("Loading word cloud...");
+    
+    // Create container for word cloud
+    const container = wordCloudContainer
         .append("div")
         .style("position", "relative")
         .style("width", "100%")
         .style("height", "400px")
         .style("background", "white")
         .style("border-radius", "8px")
-        .style("overflow", "hidden");
+        .style("overflow", "hidden")
+        .style("display", "none");  // Hide initially
 
-    // Add word cloud image
+    // Fetch and display word cloud
     fetch('/static/data/wordcloud_data.json')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
+            if (!data.image) {
+                throw new Error('No image data found');
+            }
+            
+            // Remove loading indicator
+            loadingDiv.remove();
+            
+            // Show container
+            container.style("display", "block");
+            
             // Add the image
             container.append("img")
                 .attr("src", `data:image/png;base64,${data.image}`)
@@ -25,12 +49,9 @@ function createWordCloud(words, frequencies) {
                 .style("object-fit", "contain");
         })
         .catch(error => {
-            console.error('Error loading word cloud data:', error);
-            container.append("div")
-                .style("padding", "20px")
-                .style("text-align", "center")
-                .style("color", "#666")
-                .text("Error loading word cloud. Please try again later.");
+            console.error('Error loading word cloud:', error);
+            loadingDiv
+                .text("Error loading word cloud. Please try refreshing the page.");
         });
 }
 
@@ -275,9 +296,17 @@ function createAmenitiesChart(amenities, counts) {
 
 // Function to initialize all charts
 function initializeCharts(data) {
-    createWordCloud(data.words, data.wordFrequencies);
-    createPriceHistogram(data.prices);
-    createPropertyTypesChart(data.propertyTypes, data.propertyTypeCounts);
-    createRoomTypesChart(data.roomTypes, data.roomTypeCounts);
-    createAmenitiesChart(data.topAmenities, data.amenityCounts);
+    createWordCloud();
+    if (data.prices && data.prices.length > 0) {
+        createPriceHistogram(data.prices);
+    }
+    if (data.propertyTypes && data.propertyTypeCounts) {
+        createPropertyTypesChart(data.propertyTypes, data.propertyTypeCounts);
+    }
+    if (data.roomTypes && data.roomTypeCounts) {
+        createRoomTypesChart(data.roomTypes, data.roomTypeCounts);
+    }
+    if (data.topAmenities && data.amenityCounts) {
+        createAmenitiesChart(data.topAmenities, data.amenityCounts);
+    }
 }
