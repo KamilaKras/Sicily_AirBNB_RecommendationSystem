@@ -151,12 +151,12 @@ def search():
         
         # Execute query
         query = f'''
-            SELECT id, name, host_response_time, neighbourhood_cleansed, 
+            SELECT id, name_en, host_response_time, neighbourhood_cleansed, 
                    property_type, room_type, accommodates, bathrooms_text, 
                    bedrooms, beds, amenities, review_scores_rating, price,
-                   listing_url, description_en, neighborhood_overview,
-                   minimum_nights, maximum_nights,
-                   host_name, host_since, host_location, host_about,
+                   listing_url, description_en, neighborhood_overview_en,
+                   host_about_en, minimum_nights, maximum_nights,
+                   host_name, host_since, host_location, host_about_en,
                    host_response_time, host_response_rate, host_acceptance_rate,
                    host_is_superhost, host_listings_count, host_identity_verified,
                    number_of_reviews, review_scores_accuracy, review_scores_cleanliness,
@@ -187,14 +187,14 @@ def search():
                 'review_scores_rating': listing[11],
                 'price': f"€{listing[12]} per night",  # Add currency symbol and clarify it's per night
                 'listing_url': listing[13],
-                'description': listing[14] or "No English description available.",  # Use description_en and provide fallback text
-                'neighborhood_overview': listing[15],
-                'minimum_nights': listing[16],
-                'maximum_nights': listing[17],
-                'host_name': listing[18],
-                'host_since': listing[19],
-                'host_location': listing[20],
-                'host_about': listing[21],
+                'description': listing[14] or "No description available",  # Use English description
+                'neighborhood_overview': listing[15] or "No neighborhood overview available",  # Use English neighborhood overview
+                'host_about': listing[16] or "No host information available",  # Use English host about
+                'minimum_nights': listing[17],
+                'maximum_nights': listing[18],
+                'host_name': listing[19],
+                'host_since': listing[20],
+                'host_location': listing[21],
                 'host_response_time': listing[22],
                 'host_response_rate': listing[23],
                 'host_acceptance_rate': listing[24],
