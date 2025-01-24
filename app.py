@@ -36,7 +36,14 @@ def get_filter_options():
     
     # Get min and max values for numeric fields
     numeric_ranges = {}
-    for field in ['price', 'review_scores_rating', 'accommodates', 'bedrooms', 'beds']:
+    
+    # Handle price separately since it's stored as text with decimal points
+    cursor.execute('SELECT MIN(CAST(REPLACE(price, ".","") AS INTEGER)), MAX(CAST(REPLACE(price, ".","") AS INTEGER)) FROM truncated_listings WHERE price IS NOT NULL')
+    min_price, max_price = cursor.fetchone()
+    numeric_ranges['price'] = {'min': float(min_price)/100 if min_price else 0, 'max': float(max_price)/100 if max_price else 1000}
+    
+    # Handle other numeric fields
+    for field in ['review_scores_rating', 'accommodates', 'bedrooms', 'beds']:
         cursor.execute(f'SELECT MIN({field}), MAX({field}) FROM truncated_listings WHERE {field} IS NOT NULL')
         min_val, max_val = cursor.fetchone()
         numeric_ranges[field] = {'min': min_val, 'max': max_val}
@@ -103,12 +110,21 @@ def search():
             if key.endswith('_range'):
                 field = key[:-6]  # Remove '_range' suffix
                 min_val, max_val = value
-                if min_val is not None:
-                    query_conditions.append(f'{field} >= ?')
-                    query_params.append(min_val)
-                if max_val is not None:
-                    query_conditions.append(f'{field} <= ?')
-                    query_params.append(max_val)
+                if field == 'price':
+                    # Special handling for price since it's stored as text
+                    if min_val is not None:
+                        query_conditions.append(f'CAST(REPLACE(price, ".", "") AS INTEGER) >= ?')
+                        query_params.append(int(float(min_val) * 100))
+                    if max_val is not None:
+                        query_conditions.append(f'CAST(REPLACE(price, ".", "") AS INTEGER) <= ?')
+                        query_params.append(int(float(max_val) * 100))
+                else:
+                    if min_val is not None:
+                        query_conditions.append(f'{field} >= ?')
+                        query_params.append(min_val)
+                    if max_val is not None:
+                        query_conditions.append(f'{field} <= ?')
+                        query_params.append(max_val)
             elif value:
                 if key == 'amenities':
                     # Handle amenities separately as they're stored as JSON
@@ -158,7 +174,7 @@ def search():
                 'beds': listing[9],
                 'amenities': json.loads(listing[10]),
                 'review_scores_rating': listing[11],
-                'price': listing[12],
+                'price': f"€{listing[12]} per night",  # Add currency symbol and clarify it's per night
                 'listing_url': listing[13],
                 'description': listing[14],
                 'neighborhood_overview': listing[15],

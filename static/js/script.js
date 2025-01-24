@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div class="basic-info">
                                 <p class="card-text">
-                                    <strong>Price:</strong> $${result.price}/night<br>
+                                    <strong>Price:</strong> ${result.price}<br>
                                     <strong>Type:</strong> ${result.property_type} - ${result.room_type}<br>
                                     <strong>Location:</strong> ${result.neighbourhood}<br>
                                     <strong>Rating:</strong> ${result.review_scores_rating || 'N/A'}<br>
