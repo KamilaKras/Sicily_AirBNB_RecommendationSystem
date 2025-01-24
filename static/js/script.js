@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Get categorical filters - only if they exist
+        // Get categorical filters
         const categoricalFields = ['host_response_time', 'neighbourhood_cleansed', 'property_type', 'room_type'];
         categoricalFields.forEach(field => {
             const element = document.getElementById(field);
@@ -57,10 +57,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Get selected amenities - only if they exist
-        const amenityCheckboxes = document.querySelectorAll('.amenity-checkbox:checked');
-        if (amenityCheckboxes.length > 0) {
-            filters.amenities = Array.from(amenityCheckboxes).map(checkbox => checkbox.value);
+        // Get selected amenities
+        const selectedAmenities = [];
+        document.querySelectorAll('.amenity-checkbox:checked').forEach(checkbox => {
+            selectedAmenities.push(checkbox.value);
+        });
+        if (selectedAmenities.length > 0) {
+            filters.amenities = selectedAmenities;
         }
 
         return filters;

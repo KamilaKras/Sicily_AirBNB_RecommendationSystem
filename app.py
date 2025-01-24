@@ -21,7 +21,7 @@ def get_filter_options():
         'neighbourhood_cleansed': [],
         'property_type': [],
         'room_type': [],
-        'amenities': []
+        'amenities': {}
     }
     
     for column in filters.keys():
@@ -29,10 +29,17 @@ def get_filter_options():
             cursor.execute(f'SELECT DISTINCT {column} FROM truncated_listings WHERE {column} IS NOT NULL')
             filters[column] = sorted([row[0] for row in cursor.fetchall()])
         else:
-            # For amenities, get the most common ones
-            cursor.execute('SELECT amenities FROM truncated_listings LIMIT 1')
-            sample_amenities = json.loads(cursor.fetchone()[0])
-            filters['amenities'] = sorted(list(set(sample_amenities))[:20])  # Take top 20 amenities and sort them
+            # For amenities, get all unique amenities and their frequencies
+            cursor.execute('SELECT amenities FROM truncated_listings WHERE amenities IS NOT NULL')
+            all_amenities = {}
+            for row in cursor.fetchall():
+                amenities = json.loads(row[0])
+                for amenity in amenities:
+                    all_amenities[amenity] = all_amenities.get(amenity, 0) + 1
+            
+            # Filter amenities that appear in more than 12000 listings and sort them
+            common_amenities = [(amenity, count) for amenity, count in all_amenities.items() if count > 12000]
+            filters['amenities'] = sorted([amenity for amenity, _ in common_amenities])
     
     # Get min and max values for numeric fields
     numeric_ranges = {}
@@ -113,10 +120,10 @@ def search():
                 if field == 'price':
                     # Special handling for price since it's stored as text
                     if min_val is not None:
-                        query_conditions.append(f'CAST(REPLACE(price, ".", "") AS INTEGER) >= ?')
+                        query_conditions.append(f'CAST(REPLACE(price, ".","") AS INTEGER) >= ?')
                         query_params.append(int(float(min_val) * 100))
                     if max_val is not None:
-                        query_conditions.append(f'CAST(REPLACE(price, ".", "") AS INTEGER) <= ?')
+                        query_conditions.append(f'CAST(REPLACE(price, ".","") AS INTEGER) <= ?')
                         query_params.append(int(float(max_val) * 100))
                 else:
                     if min_val is not None:
@@ -128,11 +135,15 @@ def search():
             elif value:
                 if key == 'amenities':
                     # Handle amenities separately as they're stored as JSON
+                    # Create a condition that checks if ALL selected amenities are present
                     amenities_conditions = []
                     for amenity in value:
-                        amenities_conditions.append(f"json_array_contains(amenities, ?)")
-                        query_params.append(amenity)
+                        # Use JSON_EXTRACT and LIKE for more reliable amenity matching
+                        amenities_conditions.append(f"JSON_EXTRACT(amenities, '$') LIKE ?")
+                        # Add exact quotes to ensure we match the exact amenity name
+                        query_params.append(f'%"{amenity}"%')
                     if amenities_conditions:
+                        # Use AND to ensure ALL selected amenities must be present
                         query_conditions.append(f"({' AND '.join(amenities_conditions)})")
                 else:
                     query_conditions.append(f'{key} = ?')
