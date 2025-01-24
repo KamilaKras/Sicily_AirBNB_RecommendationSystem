@@ -27,12 +27,12 @@ def get_filter_options():
     for column in filters.keys():
         if column != 'amenities':
             cursor.execute(f'SELECT DISTINCT {column} FROM truncated_listings WHERE {column} IS NOT NULL')
-            filters[column] = [row[0] for row in cursor.fetchall()]
+            filters[column] = sorted([row[0] for row in cursor.fetchall()])
         else:
             # For amenities, get the most common ones
             cursor.execute('SELECT amenities FROM truncated_listings LIMIT 1')
             sample_amenities = json.loads(cursor.fetchone()[0])
-            filters['amenities'] = list(set(sample_amenities))[:20]  # Take top 20 amenities
+            filters['amenities'] = sorted(list(set(sample_amenities))[:20])  # Take top 20 amenities and sort them
     
     # Get min and max values for numeric fields
     numeric_ranges = {}

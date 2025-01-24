@@ -6,6 +6,23 @@ from io import BytesIO
 import json
 import re
 from collections import Counter
+from nltk.corpus import stopwords
+import nltk
+
+# Download required NLTK data
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
+
+# Get stopwords for both English and Italian
+STOP_WORDS = set(stopwords.words('english') + stopwords.words('italian'))
+# Add additional common words we want to filter out
+ADDITIONAL_STOP_WORDS = {'con', 'per', 'del', 'della', 'delle', 'dei', 'degli', 'nel', 'nella', 'nelle', 'nei', 'agli', 
+                        'sul', 'sulla', 'sulle', 'sui', 'dal', 'dalla', 'dalle', 'dai', 'al', 'alla', 'alle', 'ai',
+                        'con', 'col', 'coi', 'da', 'di', 'in', 'su', 'per', 'tra', 'fra', 'casa', 'appartamento',
+                        'stanza', 'room', 'house', 'apartment', 'home', 'flat'}
+STOP_WORDS.update(ADDITIONAL_STOP_WORDS)
 
 def clean_text(text):
     if not text:
@@ -16,7 +33,10 @@ def clean_text(text):
     text = re.sub(r'[^a-zàèéìòóù\s]', '', text)
     # Remove extra whitespace
     text = ' '.join(text.split())
-    return text
+    # Remove stopwords
+    words = text.split()
+    words = [word for word in words if word not in STOP_WORDS]
+    return ' '.join(words)
 
 def get_word_frequencies(listings):
     # Clean and split all words
