@@ -15,6 +15,7 @@ filtered_reviews_columns = len(cursor.fetchall())
 cursor.execute("SELECT COUNT(*) FROM truncated_listings")
 truncated_rows = cursor.fetchone()[0]
 
+#WERYFIKACJA
 print("\nDatabase Summary:")
 print("-----------------")
 print(f"Truncated Listings table: {truncated_listings_columns} columns, {truncated_rows:,} rows")

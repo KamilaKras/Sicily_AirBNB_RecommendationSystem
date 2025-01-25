@@ -5,10 +5,8 @@ cursor = conn.cursor()
 
 #Nowa tabela z czescia danych airbnb
 cursor.execute("CREATE TABLE IF NOT EXISTS truncated_listings AS SELECT * FROM listings LIMIT 27000")
-
 # Usuniecie oryginalnej tabeli listings
 cursor.execute("DROP TABLE IF EXISTS listings")
-
 # Zatwierdzenie zmian
 conn.commit()
 
@@ -16,8 +14,7 @@ conn.commit()
 cursor.execute("SELECT COUNT(*) FROM truncated_listings")
 truncated_rows = cursor.fetchone()[0]
 
-print("\nTruncated Database Summary:")
-print("-------------------------------------")
+# Weryfikacja
 print(f"Truncated Listings table: {truncated_rows:,} rows")
 
 # Zamykanie połączenia z bazą danych

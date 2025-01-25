@@ -28,12 +28,5 @@ host_about_updates = cursor.fetchone()[0]
 cursor.execute("SELECT COUNT(*) FROM truncated_listings")
 updated_rows = cursor.fetchone()[0]
 
-print("\nData Cleaning Summary:")
-print("----------------------")
-print(f"Neighborhood Overview updated: {neighborhood_updates} rows")
-print(f"Host Response Time updated: {host_response_updates} rows")
-print(f"Host About updated: {host_about_updates} rows")
-print(f"Total rows in truncated_listings after cleaning: {updated_rows:,} rows")
-
 #Zamkniecie połączenia
 conn.close()
