@@ -5,11 +5,11 @@
 {% block content %}
 <div class="container-fluid">
     <div class="row">
-        <!-- Filters Sidebar -->
+        <!-- Sidebar z filtrami -->
         <div class="col-md-3 sidebar">
             <h3>Filters</h3>
             <div class="filters-container">
-                <!-- Filters -->
+                <!-- Filtry -->
                 <div class="filter-section">
                     <label for="similarity-metric">Similarity metric</label>
                     <select id="similarity-metric" class="form-select">
@@ -18,8 +18,7 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- Categorical Filters -->
+                <!-- Filtry kategorie -->
                 <div class="filter-section">
                     <label for="host_response_time">Host response time</label>
                     <select id="host_response_time" class="form-select">
@@ -59,8 +58,7 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- Numeric Filters -->
+                <!-- Filtry liczbowe -->
                 <div class="filter-section">
                     <label>Price (€ per night)</label>
                     <div class="range-inputs">
@@ -100,8 +98,7 @@
                         <input type="number" id="beds-max" class="form-control" placeholder="Max">
                     </div>
                 </div>
-
-                <!-- Amenities -->
+                <!-- Filtry udogodnienia -->
                 <div class="filter-section">
                     <label>Amenities</label>
                     <div class="amenities-container">
@@ -113,11 +110,11 @@
                         {% endfor %}
                     </div>
                 </div>
-            </div> <!-- Close .filters-container -->
-        </div> <!-- Close .sidebar -->
-        <!-- Main Content -->
+            </div> 
+        </div> 
+        <!-- Treść strony -->
         <div class="col-md-9 main-content">
-            <!-- Photo Carousel -->
+            <!-- Zdjecia -->
             <div class="carousel-container">
                 <div id="photoCarousel" class="carousel slide" data-bs-ride="carousel">
                     <div class="carousel-inner">
@@ -137,16 +134,13 @@
                     </button>
                 </div>
             </div>
-
             <!-- Search Bar -->
             <div class="search-container mb-4">
                 <input type="text" id="search-input" class="form-control" placeholder="Search for Airbnb listings...">
                 <button id="search-button" class="btn btn-primary">Search</button>
             </div>
-
-            <!-- Search Results -->
+            <!-- Wyniki wyszukiwania -->
             <div id="results-container" class="row">
-                <!-- Results will be dynamically inserted here -->
             </div>
         </div>
     </div>
