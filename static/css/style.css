@@ -271,7 +271,7 @@ body {
     background: rgba(0, 0, 0, 0.3);
 }
 
-/* Custom scrollbar */
+/* scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
 }
@@ -290,7 +290,7 @@ body {
     background: #a0aec0;
 }
 
-/* Navigation */
+/* Nawigacja */
 .navbar {
     background-color: #30a29a;
     padding: 0.75rem 2rem;
@@ -345,7 +345,7 @@ body {
     box-shadow: 0 0 0 0.25rem rgba(48, 162, 154, 0.25);
 }
 
-/* Responsive adjustments */
+/* Responsywnosc */
 @media (max-width: 768px) {
     .navbar {
         padding: 0.5rem 1rem;
@@ -365,7 +365,7 @@ body {
     }
 }
 
-/* Expandable search results */
+/* Rozszerzanie karty wyniki */
 .result-card {
     transition: all 0.3s ease;
 }
