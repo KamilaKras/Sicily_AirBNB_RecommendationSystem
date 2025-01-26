@@ -2,10 +2,11 @@
 
 System wyszukiwania i rekomendacji ofert AirBnB na Sycylii.
 
+![Sycylia](static/Sicily_photo/Sicily_photo2.jpg)
+
 ## Spis treści
 - [Wymagania systemowe](#wymagania-systemowe)
-- [Instalacja](#instalacja)
-- [Uruchomienie aplikacji](#uruchomienie-aplikacji)
+- [Instalacja i uruchomienie](#instalacja-i-uruchomienie)
 - [Struktura projektu](#struktura-projektu)
 
 ## Wymagania systemowe
