@@ -1,6 +1,23 @@
 import sqlite3
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import wordnet
+
+# Download required NLTK data
+try:
+    nltk.data.find('tokenizers/punkt')
+    nltk.data.find('corpora/stopwords')
+    nltk.data.find('corpora/wordnet')
+    nltk.data.find('taggers/averaged_perceptron_tagger')
+except LookupError:
+    nltk.download('punkt')
+    nltk.download('stopwords')
+    nltk.download('wordnet')
+    nltk.download('averaged_perceptron_tagger')
 
 class SearchEngine:
     def __init__(self, db_path='airbnb.db', similarity_measure='cosine'):
@@ -12,35 +29,64 @@ class SearchEngine:
         self.processed_names = []
         self.original_names = []
         self.similarity_measure = similarity_measure
+        self.lemmatizer = WordNetLemmatizer()
+        self.stop_words = set(stopwords.words('english'))
         self._initialize()
+    
+    def _get_wordnet_pos(self, word):
+        """Map POS tag to first character lemmatize() accepts"""
+        tag = nltk.pos_tag([word])[0][1][0].upper()
+        tag_dict = {
+            "J": wordnet.ADJ,
+            "N": wordnet.NOUN,
+            "V": wordnet.VERB,
+            "R": wordnet.ADV
+        }
+        return tag_dict.get(tag, wordnet.NOUN)
+    
+    def process_text(self, text):
+        """Process text using sophisticated NLP techniques"""
+        if not text:
+            return ""
+            
+        # Tokenize and convert to lowercase
+        tokens = word_tokenize(text.lower())
+        
+        # Remove stopwords and non-alphanumeric tokens
+        tokens = [token for token in tokens if token.isalnum() and token not in self.stop_words]
+        
+        # Lemmatize with correct POS tag
+        processed = [self.lemmatizer.lemmatize(token, self._get_wordnet_pos(token)) for token in tokens]
+        
+        return " ".join(processed)
     
     def _initialize(self):
         """Load and preprocess all listing names from the database"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Get all listings
-        cursor.execute('SELECT id, name FROM truncated_listings WHERE name IS NOT NULL')
+        # Get all listings with their tokenized names
+        cursor.execute('''
+            SELECT id, name_tokens, name_en 
+            FROM truncated_listings 
+            WHERE name_tokens IS NOT NULL
+        ''')
         listings = cursor.fetchall()
         conn.close()
         
-        # Process names and store listing IDs
+        # Store listing IDs and names
         self.listing_ids = []
         self.processed_names = []
         self.original_names = []
         
-        for listing_id, name in listings:
-            # Convert to lowercase and remove symbols
-            processed_name = name.lower()
-            for symbol in [",", ".", ":", ";", "!", "?"]:
-                processed_name = processed_name.replace(symbol, "")
-            
-            self.listing_ids.append(listing_id)
-            self.processed_names.append(processed_name)
-            self.original_names.append(name)
+        for listing_id, tokens, original_name in listings:
+            if tokens:  # Only include listings with valid tokens
+                self.listing_ids.append(listing_id)
+                self.processed_names.append(tokens.replace('|', ' '))  # Convert pipe-separated tokens to space-separated
+                self.original_names.append(original_name)
         
         # Calculate TF-IDF matrix
-        self.vectorizer = TfidfVectorizer(lowercase=True)
+        self.vectorizer = TfidfVectorizer(lowercase=True, norm=None)  # Disable L2 normalization
         self.tfidf_matrix = self.vectorizer.fit_transform(self.processed_names)
 
     def calculate_similarities(self, query_vector, doc_vector):
@@ -51,36 +97,36 @@ class SearchEngine:
         
         # Helper calculations
         dot_product = np.sum(q * d)
-        suma_kw_wag = np.sum(d * d)
-        query_terms = np.count_nonzero(q)
-        
-        # Dice similarity
-        mianownik_dice = query_terms * suma_kw_wag
-        dice = 2 * dot_product / mianownik_dice if mianownik_dice > 0 else 0
-        
-        # Jaccard similarity
-        mianownik_jaccard = query_terms + suma_kw_wag - dot_product
-        jaccard = dot_product / mianownik_jaccard if mianownik_jaccard > 0 else 0
+        q_magnitude = np.sum(q * q)  # |q|^2
+        d_magnitude = np.sum(d * d)  # |d|^2
         
         # Cosine similarity
-        mianownik_cosine = (query_terms ** 0.5) * (suma_kw_wag ** 0.5)
+        mianownik_cosine = np.sqrt(q_magnitude) * np.sqrt(d_magnitude)
         cosine = dot_product / mianownik_cosine if mianownik_cosine > 0 else 0
         
+        # Dice similarity (different from cosine!)
+        # Dice = (2 * dot_product) / (|q|^2 + |d|^2)
+        mianownik_dice = q_magnitude + d_magnitude
+        dice = (2.0 * dot_product) / mianownik_dice if mianownik_dice > 0 else 0
+        
+        # Jaccard similarity
+        # Jaccard = dot_product / (|q|^2 + |d|^2 - dot_product)
+        mianownik_jaccard = q_magnitude + d_magnitude - dot_product
+        jaccard = dot_product / mianownik_jaccard if mianownik_jaccard > 0 else 0
+        
         return {
-            'dice': round(dice, 2),
-            'jaccard': round(jaccard, 2),
-            'cosine': round(cosine, 2)
+            'dice': round(dice, 4),
+            'jaccard': round(jaccard, 4),
+            'cosine': round(cosine, 4)
         }
 
-    def search(self, query, top_k=5):
+    def search(self, query, top_k=10):
         """Search for listings similar to the query"""
-        # Process query
-        query = query.lower()
-        for symbol in [",", ".", ":", ";", "!", "?"]:
-            query = query.replace(symbol, "")
+        # Process query using the same sophisticated processing as listings
+        processed_query = self.process_text(query)
         
         # Convert query to TF-IDF vector
-        query_vector = self.vectorizer.transform([query])
+        query_vector = self.vectorizer.transform([processed_query])
         
         # Calculate similarities for all documents
         results = []
@@ -91,51 +137,15 @@ class SearchEngine:
             # Use the selected similarity measure for ranking
             similarity_score = similarities[self.similarity_measure]
             
-            results.append({
-                'listing_id': self.listing_ids[idx],
-                'name': self.original_names[idx],
-                'similarity_score': similarity_score,
-                'all_similarities': similarities
-            })
+            # Only include results with non-zero similarity
+            if similarity_score > 0:
+                results.append({
+                    'listing_id': self.listing_ids[idx],
+                    'name': self.original_names[idx],
+                    'similarity_score': similarity_score,
+                    'all_similarities': similarities
+                })
         
         # Sort by similarity score and return top k results
         results.sort(key=lambda x: x['similarity_score'], reverse=True)
         return results[:top_k]
-
-def main():
-    # Initialize search engine with default cosine similarity
-    search_engine = SearchEngine()
-    
-    print("\nWelcome to the Airbnb Search Engine!")
-    print("Available similarity measures: 'cosine' (default), 'jaccard', 'dice'")
-    
-    # Get similarity measure preference
-    measure = input("Enter similarity measure (or press Enter for default 'cosine'): ").strip().lower()
-    if measure in ['jaccard', 'dice']:
-        search_engine = SearchEngine(similarity_measure=measure)
-    
-    print("\nEnter your search query (or 'quit' to exit):")
-    
-    while True:
-        query = input("\nSearch query: ").strip()
-        
-        if query.lower() == 'quit':
-            break
-        
-        if not query:
-            print("Please enter a valid search query.")
-            continue
-        
-        # Process the query and get results
-        results = search_engine.search(query)
-        
-        # Display results
-        print(f"\nTop {len(results)} matches:")
-        for i, result in enumerate(results, 1):
-            print(f"\n{i}. Listing ID: {result['listing_id']}")
-            print(f"Name: {result['name']}")
-            print(f"Similarity score: {result['similarity_score']:.4f}")
-            print(f"All similarities: {result['all_similarities']}")
-
-if __name__ == '__main__':
-    main()
