@@ -57,15 +57,15 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="mb-4">Database Statistics</h1>
+    <h1 class="mb-4">Database statistics</h1>
     <!-- Database Info -->
     <div class="row mb-4">
         <div class="col-md-6">
             <div class="stats-card">
-                <h5 class="stats-title">Database Overview</h5>
+                <h5 class="stats-title">Database overview</h5>
                 <div class="stats-value">
-                    <strong>Total Records:</strong> {{ data.total_rows }}<br>
-                    <strong>Number of Columns:</strong> {{ data.total_columns }}
+                    <strong>Total records:</strong> {{ data.total_rows }}<br>
+                    <strong>Number of columns:</strong> {{ data.total_columns }}
                 </div>
             </div>
         </div>
@@ -74,7 +74,7 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="chart-container">
-                <h3 class="chart-title">Most Common Words in Listing Names</h3>
+                <h3 class="chart-title">Most common words in listing names</h3>
                 <div id="wordCloud"></div>
             </div>
         </div>

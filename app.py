@@ -4,18 +4,24 @@ import os
 import json
 import sqlite3
 
+# Inicjalizacja aplikacji Flask i wyszukiwania
 app = Flask(__name__)
-search_engine = SearchEngine()
+app.config['DATABASE'] = 'airbnb.db'
 
+# Inicjalizacja silnika wyszukiwania
+search_engine = SearchEngine('airbnb.db')
+
+#połączenie z bazą danych
 def get_db_connection():
     conn = sqlite3.connect('airbnb.db')
+    conn.row_factory = sqlite3.Row
     return conn
 
+# Funkcja pobierająca opcje filtrów z bazy danych
 def get_filter_options():
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # Get unique values for each filter
+    # Pobranie unikalnych wartości dla każdego filtra
     filters = {
         'host_response_time': [],
         'neighbourhood_cleansed': [],
@@ -23,13 +29,13 @@ def get_filter_options():
         'room_type': [],
         'amenities': {}
     }
-    
+    # Iteracja po każdej kolumnie filtrów
     for column in filters.keys():
         if column != 'amenities':
             cursor.execute(f'SELECT DISTINCT {column} FROM truncated_listings WHERE {column} IS NOT NULL')
             filters[column] = sorted([row[0] for row in cursor.fetchall()])
         else:
-            # For amenities, get all unique amenities and their frequencies
+            # Dla udogodnień, pobierz wszystkie unikalne udogodnienia i ich częstotliwość
             cursor.execute('SELECT amenities FROM truncated_listings WHERE amenities IS NOT NULL')
             all_amenities = {}
             for row in cursor.fetchall():
@@ -37,19 +43,19 @@ def get_filter_options():
                 for amenity in amenities:
                     all_amenities[amenity] = all_amenities.get(amenity, 0) + 1
             
-            # Filter amenities that appear in more than 12000 listings and sort them
+            # Filtrowanie udogodnień, które pojawiają się w więcej niż 12000 ofertach
             common_amenities = [(amenity, count) for amenity, count in all_amenities.items() if count > 12000]
             filters['amenities'] = sorted([amenity for amenity, _ in common_amenities])
     
-    # Get min and max values for numeric fields
+    # Pobranie minimalnych i maksymalnych wartości dla pól numerycznych
     numeric_ranges = {}
     
-    # Handle price separately since it's stored as text with decimal points
+    # Osobna obsługa ceny, ponieważ jest przechowywana jako tekst z punktami dziesiętnymi
     cursor.execute('SELECT MIN(CAST(REPLACE(price, ".","") AS INTEGER)), MAX(CAST(REPLACE(price, ".","") AS INTEGER)) FROM truncated_listings WHERE price IS NOT NULL')
     min_price, max_price = cursor.fetchone()
     numeric_ranges['price'] = {'min': float(min_price)/100 if min_price else 0, 'max': float(max_price)/100 if max_price else 1000}
     
-    # Handle other numeric fields
+    # Obsługa pozostałych pól numerycznych
     for field in ['review_scores_rating', 'accommodates', 'bedrooms', 'beds']:
         cursor.execute(f'SELECT MIN({field}), MAX({field}) FROM truncated_listings WHERE {field} IS NOT NULL')
         min_val, max_val = cursor.fetchone()
@@ -58,23 +64,22 @@ def get_filter_options():
     conn.close()
     return filters, numeric_ranges
 
+# Strona główna aplikacji
 @app.route('/')
 def index():
+    # Pobranie opcji filtrów i zakresów numerycznych
     filters, numeric_ranges = get_filter_options()
     similarity_metrics = ['cosine', 'jaccard', 'dice']
     
-    # Use absolute path for photos directory
     photos_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'Sicily_photo')
     
-    # Create the directory if it doesn't exist
     if not os.path.exists(photos_dir):
         os.makedirs(photos_dir)
     
-    # Get list of photos if any exist, otherwise use an empty list
     try:
         photo_files = [f for f in os.listdir(photos_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
     except Exception as e:
-        print(f"Error reading photos directory: {e}")
+        print(f"Błąd odczytu katalogu ze zdjęciami: {e}")
         photo_files = []
     
     return render_template('index.html', 
@@ -83,21 +88,22 @@ def index():
                          similarity_metrics=similarity_metrics,
                          photos=photo_files)
 
+# Funkcja obsługująca wyszukiwanie
 @app.route('/search', methods=['POST'])
 def search():
-    data = request.json
+    # Pobranie danych z żądania
+    data = request.get_json()
     query = data.get('query', '')
     filters = data.get('filters', {})
+    print(f"Debug - Received filters: {filters}")
     
-    # Update search engine similarity measure if provided
+    # Aktualizacja miary podobieństwa
     similarity_metric = filters.get('similarity_metric', 'cosine')
     if similarity_metric != search_engine.similarity_measure:
         search_engine.similarity_measure = similarity_metric
     
-    # Perform the search
     results = search_engine.search(query)
     
-    # Apply filters to results
     filtered_results = []
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -106,185 +112,176 @@ def search():
         listing_id = result['listing_id']
         similarity_score = result['similarity_score']
         
-        # Build dynamic query based on filters
-        query_conditions = ['id = ?']
-        query_params = [listing_id]
+        query_conditions = ["1=1"]  # Zawsze prawdziwy warunek jako początek
+        query_params = []
         
-        for key, value in filters.items():
-            if key == 'similarity_metric':
-                continue
+        if listing_id:
+            query_conditions.append("id = ?")
+            query_params.append(listing_id)
             
-            if key.endswith('_range'):
-                field = key[:-6]  # Remove '_range' suffix
-                min_val, max_val = value
-                if field == 'price':
-                    # Special handling for price since it's stored as text
-                    if min_val is not None:
-                        query_conditions.append(f'CAST(REPLACE(price, ".","") AS INTEGER) >= ?')
-                        query_params.append(int(float(min_val) * 100))
-                    if max_val is not None:
-                        query_conditions.append(f'CAST(REPLACE(price, ".","") AS INTEGER) <= ?')
-                        query_params.append(int(float(max_val) * 100))
-                else:
-                    if min_val is not None:
-                        query_conditions.append(f'{field} >= ?')
-                        query_params.append(min_val)
-                    if max_val is not None:
-                        query_conditions.append(f'{field} <= ?')
-                        query_params.append(max_val)
-            elif value:
-                if key == 'amenities':
-                    # Handle amenities separately as they're stored as JSON
-                    # Create a condition that checks if ALL selected amenities are present
-                    amenities_conditions = []
-                    for amenity in value:
-                        # Use JSON_EXTRACT and LIKE for more reliable amenity matching
-                        amenities_conditions.append(f"JSON_EXTRACT(amenities, '$') LIKE ?")
-                        # Add exact quotes to ensure we match the exact amenity name
-                        query_params.append(f'%"{amenity}"%')
-                    if amenities_conditions:
-                        # Use AND to ensure ALL selected amenities must be present
-                        query_conditions.append(f"({' AND '.join(amenities_conditions)})")
-                else:
-                    query_conditions.append(f'{key} = ?')
-                    query_params.append(value)
-        
-        # Execute query
+        if 'price_range' in filters:
+            price_min, price_max = filters['price_range']
+            if price_min is not None:
+                query_conditions.append("CAST(REPLACE(REPLACE(price, '€', ''), ',', '') AS DECIMAL) >= ?")
+                query_params.append(price_min)
+                
+            if price_max is not None:
+                query_conditions.append("CAST(REPLACE(REPLACE(price, '€', ''), ',', '') AS DECIMAL) <= ?")
+                query_params.append(price_max)
+                
+        if 'min_reviews' in filters:
+            min_reviews = filters['min_reviews']
+            if min_reviews is not None:
+                query_conditions.append("number_of_reviews >= ?")
+                query_params.append(min_reviews)
+                
+        if 'accommodates_range' in filters:
+            accommodates_min, accommodates_max = filters['accommodates_range']
+            if accommodates_min is not None:
+                query_conditions.append("accommodates >= ?")
+                query_params.append(accommodates_min)
+                
+            if accommodates_max is not None:
+                query_conditions.append("accommodates <= ?")
+                query_params.append(accommodates_max)
+                
+        if 'room_types' in filters:
+            room_types = filters['room_types']
+            placeholders = ','.join(['?' for _ in room_types])
+            query_conditions.append(f"room_type IN ({placeholders})")
+            query_params.extend(room_types)
+            
+        if 'property_types' in filters:
+            property_types = filters['property_types']
+            placeholders = ','.join(['?' for _ in property_types])
+            query_conditions.append(f"property_type IN ({placeholders})")
+            query_params.extend(property_types)
+            
+        if 'neighbourhoods' in filters:
+            neighbourhoods = filters['neighbourhoods']
+            placeholders = ','.join(['?' for _ in neighbourhoods])
+            query_conditions.append(f"neighbourhood_cleansed IN ({placeholders})")
+            query_params.extend(neighbourhoods)
+            
+        if 'amenities' in filters:
+            amenities = filters['amenities']
+            for amenity in amenities:
+                query_conditions.append("amenities LIKE ?")
+                query_params.append(f"%{amenity}%")
+                
+        if 'superhost' in filters:
+            superhost = filters['superhost']
+            value = 't' if superhost else 'f'
+            query_conditions.append("host_is_superhost = ?")
+            query_params.append(value)
+            
+        if 'review_scores_rating_range' in filters:
+            min_rating, max_rating = filters['review_scores_rating_range']
+            print(f"Debug - Review Rating Filter: min={min_rating}, max={max_rating}")
+            if min_rating is not None:
+                query_conditions.append("COALESCE(review_scores_rating, 0) >= ?")
+                query_params.append(float(min_rating))  # Upewniamy się, że to float
+            if max_rating is not None:
+                query_conditions.append("COALESCE(review_scores_rating, 0) <= ?")
+                query_params.append(float(max_rating))  # Upewniamy się, że to float
         query = f'''
-            SELECT id, name_en, host_response_time, neighbourhood_cleansed, 
-                   property_type, room_type, accommodates, bathrooms_text, 
-                   bedrooms, beds, amenities, review_scores_rating, price,
-                   listing_url, description_en, neighborhood_overview_en,
-                   host_about_en, minimum_nights, maximum_nights,
-                   host_name, host_since, host_location, host_about_en,
+            SELECT id, listing_url, name, description, neighborhood_overview,
+                   host_name, host_since, host_location, host_about,
                    host_response_time, host_response_rate, host_acceptance_rate,
                    host_is_superhost, host_listings_count, host_identity_verified,
-                   number_of_reviews, review_scores_accuracy, review_scores_cleanliness,
+                   neighbourhood_cleansed, property_type, room_type, accommodates,
+                   bathrooms_text, bedrooms, beds, amenities, price,
+                   minimum_nights, maximum_nights, number_of_reviews,
+                   review_scores_rating, review_scores_accuracy, review_scores_cleanliness,
                    review_scores_checkin, review_scores_communication,
-                   review_scores_location, review_scores_value
+                   review_scores_location, review_scores_value,
+                   description_en, neighborhood_overview_en, name_en, host_about_en
             FROM truncated_listings 
             WHERE {" AND ".join(query_conditions)}
         '''
+        print(f"Debug - SQL Query: {query}")
+        print(f"Debug - Query params: {query_params}")
         cursor.execute(query, query_params)
         listing = cursor.fetchone()
         
         if listing:
-            # Create a default image URL using the Sicily photo
+            print(f"Debug - Review scores rating from DB: {listing[27]}")
             default_image_url = url_for('static', filename='Sicily_photo/Sicily_photo.jpg')
             
+            def safe_float_convert(value):
+                if value is None:
+                    return None
+                if isinstance(value, (int, float)):
+                    return float(value)
+                if isinstance(value, str) and value.replace('.', '').isdigit():
+                    return float(value)
+                return None
+
             filtered_results.append({
                 'id': listing[0],
-                'name': listing[1],
-                'host_response_time': listing[2],
-                'neighbourhood': listing[3],
-                'property_type': listing[4],
-                'room_type': listing[5],
-                'accommodates': listing[6],
-                'bathrooms': listing[7],
-                'bedrooms': listing[8],
-                'beds': listing[9],
-                'amenities': json.loads(listing[10]),
-                'review_scores_rating': listing[11],
-                'price': f"€{listing[12]} per night",  # Add currency symbol and clarify it's per night
-                'listing_url': listing[13],
-                'description': listing[14] or "No description available",  # Use English description
-                'neighborhood_overview': listing[15] or "No neighborhood overview available",  # Use English neighborhood overview
-                'host_about': listing[16] or "No host information available",  # Use English host about
-                'minimum_nights': listing[17],
-                'maximum_nights': listing[18],
-                'host_name': listing[19],
-                'host_since': listing[20],
-                'host_location': listing[21],
-                'host_response_time': listing[22],
-                'host_response_rate': listing[23],
-                'host_acceptance_rate': listing[24],
-                'host_is_superhost': listing[25],
-                'host_listings_count': listing[26],
-                'host_identity_verified': listing[27],
-                'number_of_reviews': listing[28],
-                'review_scores_accuracy': listing[29],
-                'review_scores_cleanliness': listing[30],
-                'review_scores_checkin': listing[31],
-                'review_scores_communication': listing[32],
-                'review_scores_location': listing[33],
-                'review_scores_value': listing[34],
-                'picture_url': default_image_url,  # Use the default image
+                'name': listing[36],  # name_en
+                'host_response_time': listing[9],
+                'neighbourhood': listing[15],
+                'property_type': listing[16],
+                'room_type': listing[17],
+                'accommodates': listing[18],
+                'bathrooms': listing[19],
+                'bedrooms': listing[20],
+                'beds': listing[21],
+                'amenities': json.loads(listing[22]),
+                'review_scores_rating': listing[27],
+                'price': f"€{listing[23]} per night",
+                'listing_url': listing[1],
+                'description': listing[34] or "No description",  # description_en
+                'neighborhood_overview': listing[35] or "No neighborhood overview",  # neighborhood_overview_en
+                'host_about': listing[37] or "No host information",  # host_about_en
+                'minimum_nights': listing[24],
+                'maximum_nights': listing[25],
+                'host_name': listing[5],
+                'host_since': listing[6],
+                'host_location': listing[7],
+                'host_response_time': listing[9],
+                'host_response_rate': listing[10],
+                'host_acceptance_rate': listing[11],
+                'host_is_superhost': listing[12],
+                'host_listings_count': listing[13],
+                'host_identity_verified': listing[14],
+                'number_of_reviews': int(listing[26]) if listing[26] is not None else 0,
+                'review_scores_accuracy': listing[28],
+                'review_scores_cleanliness': listing[29],
+                'review_scores_checkin': listing[30],
+                'review_scores_communication': listing[31],
+                'review_scores_location': listing[32],
+                'review_scores_value': listing[33],
+                'picture_url': default_image_url,
                 'similarity_score': similarity_score
             })
-    
     conn.close()
     return jsonify(filtered_results)
 
+# Strona statystyk
 @app.route('/statistics')
 def statistics():
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    # Generate word cloud if it doesn't exist
+    # Wygenerowanie chmury słów, jeśli nie istnieje
     if not os.path.exists('static/data/wordcloud_data.json'):
         from generate_wordcloud import generate_wordcloud
         generate_wordcloud()
-
-    # Get database statistics
+    # Pobranie statystyk bazy danych
     cursor.execute("SELECT COUNT(*) FROM truncated_listings")
     total_rows = cursor.fetchone()[0]
-
     cursor.execute("PRAGMA table_info(truncated_listings)")
     total_columns = len(cursor.fetchall())
-
-    # Get price data
-    cursor.execute("SELECT price FROM truncated_listings WHERE price < 1000")
-    prices = [row[0] for row in cursor.fetchall()]
-
-    # Get property types
-    cursor.execute("""
-        SELECT property_type, COUNT(*) as count 
-        FROM truncated_listings 
-        GROUP BY property_type 
-        ORDER BY count DESC 
-        LIMIT 10
-    """)
-    property_types_data = cursor.fetchall()
-    property_types = [row[0] for row in property_types_data]
-    property_type_counts = [row[1] for row in property_types_data]
-
-    # Get room types
-    cursor.execute("""
-        SELECT room_type, COUNT(*) as count 
-        FROM truncated_listings 
-        GROUP BY room_type
-    """)
-    room_types_data = cursor.fetchall()
-    room_types = [row[0] for row in room_types_data]
-    room_type_counts = [row[1] for row in room_types_data]
-
-    # Get top amenities
-    cursor.execute("""
-        SELECT amenities, COUNT(*) as count 
-        FROM truncated_listings 
-        GROUP BY amenities 
-        ORDER BY count DESC 
-        LIMIT 15
-    """)
-    amenities_data = cursor.fetchall()
-    amenities = [row[0] for row in amenities_data]
-    amenity_counts = [row[1] for row in amenities_data]
-
     conn.close()
 
+    # Przygotowanie danych do wysłania do szablonu
     data = {
         'total_rows': total_rows,
-        'total_columns': total_columns,
-        'prices': prices,
-        'propertyTypes': property_types,
-        'propertyTypeCounts': property_type_counts,
-        'roomTypes': room_types,
-        'roomTypeCounts': room_type_counts,
-        'topAmenities': amenities,
-        'amenityCounts': amenity_counts
+        'total_columns': total_columns
     }
-
     return render_template('statistics.html', data=data)
 
+# Uruchomienie aplikacji
 if __name__ == '__main__':
     app.run(debug=True)

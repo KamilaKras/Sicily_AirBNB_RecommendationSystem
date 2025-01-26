@@ -19,7 +19,7 @@ System wyszukiwania i rekomendacji ofert AirBnB na Sycylii.
 
 1. Klonowanie repozytorium:
 ```bash
-git clone [URL_repozytorium]
+git clone https://github.com/KamilaKras/Sicily_AirBNB_RecommendationSystem.git
 cd Sicily_AirBNB_RecommendationSystem
 ```
 
@@ -65,7 +65,6 @@ Pliki użyte do tłumaczenia treści na język angielski. Nie są wymagane do ur
 ### Katalogi
 - `/static` - Pliki statyczne (CSS, JavaScript, obrazy)
 - `/templates` - Szablony HTML
-- `/logs` - Pliki logów tłumaczenia (historyczne)
 
 ## Uwagi
 - System używa przetworzonej bazy danych SQLite (`airbnb.db`), która zawiera już wszystkie potrzebne dane

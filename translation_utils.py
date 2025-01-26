@@ -4,7 +4,7 @@ import sqlite3
 import time
 import logging
 
-# Configure logging
+# Konfiguracja logowania
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -12,7 +12,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def get_untranslated_descriptions(cursor, batch_size=100):
-    """Get descriptions that haven't been translated yet"""
     cursor.execute("""
         SELECT id, description 
         FROM truncated_listings 
@@ -23,14 +22,12 @@ def get_untranslated_descriptions(cursor, batch_size=100):
     return cursor.fetchall()
 
 def is_italian(text):
-    """Check if text is in Italian"""
     try:
         return detect(text) == 'it'
     except:
         return False
 
 def translate_text(text):
-    """Translate text from Italian to English"""
     try:
         translator = GoogleTranslator(source='it', target='en')
         return translator.translate(text)
@@ -39,18 +36,16 @@ def translate_text(text):
         return None
 
 def update_database_translations():
-    """Update database with translations, handling all batches automatically"""
     conn = sqlite3.connect('airbnb.db')
     cursor = conn.cursor()
     
     total_translated = 0
     batch_size = 100
     error_count = 0
-    max_errors = 5  # Maximum number of consecutive errors before stopping
+    max_errors = 5 
     
     try:
         while True:
-            # Get next batch of untranslated descriptions
             descriptions = get_untranslated_descriptions(cursor, batch_size)
             
             if not descriptions:
@@ -61,15 +56,12 @@ def update_database_translations():
             
             for id, description in descriptions:
                 try:
-                    # Skip if description is empty or not Italian
                     if not description or not is_italian(description):
                         cursor.execute(
                             "UPDATE truncated_listings SET description_en = ? WHERE id = ?",
                             (description, id)
                         )
                         continue
-                    
-                    # Translate the description
                     translated = translate_text(description)
                     if translated:
                         cursor.execute(
@@ -77,29 +69,23 @@ def update_database_translations():
                             (translated, id)
                         )
                         total_translated += 1
-                        error_count = 0  # Reset error count on success
+                        error_count = 0 
                     else:
                         error_count += 1
-                        
-                    # Commit every translation to avoid losing progress
-                    conn.commit()
                     
-                    # Add a small delay to avoid hitting API limits
+                    conn.commit()
                     time.sleep(1)
                     
                 except Exception as e:
                     logger.error(f"Error processing description {id}: {e}")
                     error_count += 1
                     
-                # Check if we've hit too many errors
                 if error_count >= max_errors:
                     logger.error("Too many consecutive errors, stopping translation")
                     raise Exception("Translation stopped due to too many errors")
                     
                 if total_translated % 10 == 0:
                     logger.info(f"Translated {total_translated} descriptions so far")
-            
-            # Log progress after each batch
             logger.info(f"Completed batch. Total translated: {total_translated}")
             
     except KeyboardInterrupt:
@@ -107,7 +93,6 @@ def update_database_translations():
     except Exception as e:
         logger.error(f"Translation stopped due to error: {e}")
     finally:
-        # Make sure to commit any remaining changes
         conn.commit()
         conn.close()
         logger.info(f"Translation complete. Total translated: {total_translated}")

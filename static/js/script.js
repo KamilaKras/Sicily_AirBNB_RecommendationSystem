@@ -25,17 +25,24 @@ document.addEventListener('DOMContentLoaded', function() {
     function getFilters() {
         const filters = {};
         
-        // Get similarity metric
+        // get metryka podobienstwa
         const similarityMetric = document.getElementById('similarity-metric');
         if (similarityMetric) {
             filters.similarity_metric = similarityMetric.value;
         }
 
-        // Get numeric range filters
-        const numericFields = ['price', 'review_scores_rating', 'accommodates', 'bedrooms', 'beds'];
-        numericFields.forEach(field => {
-            const minElement = document.getElementById(`${field}-min`);
-            const maxElement = document.getElementById(`${field}-max`);
+        // Get filtry numeryczne
+        const numericFields = {
+            'price': 'price',
+            'review_scores_rating': 'rating',
+            'accommodates': 'accommodates',
+            'bedrooms': 'bedrooms',
+            'beds': 'beds'
+        };
+        
+        Object.entries(numericFields).forEach(([field, prefix]) => {
+            const minElement = document.getElementById(`${prefix}-min`);
+            const maxElement = document.getElementById(`${prefix}-max`);
             if (minElement || maxElement) {
                 const minVal = minElement ? minElement.value : null;
                 const maxVal = maxElement ? maxElement.value : null;
@@ -48,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Get categorical filters
+        // Get filtry kategorii
         const categoricalFields = ['host_response_time', 'neighbourhood_cleansed', 'property_type', 'room_type'];
         categoricalFields.forEach(field => {
             const element = document.getElementById(field);
@@ -57,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Get selected amenities
+        // Get wybrane udogodnienia
         const selectedAmenities = [];
         document.querySelectorAll('.amenity-checkbox:checked').forEach(checkbox => {
             selectedAmenities.push(checkbox.value);
@@ -80,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const filters = getFilters();
         console.log('Filters:', filters);
         
-        // Show loading state
+        // pokazanie stanu ładowania
         resultsContainer.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
 
         console.log('Sending fetch request to /search');
@@ -109,11 +116,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displayResults(results) {
+        console.log('Received results:', results);
         const resultsContainer = document.getElementById('results-container');
         if (!results || results.length === 0) {
             resultsContainer.innerHTML = '<p>No results found.</p>';
             return;
         }
+
+        results.forEach(result => {
+            console.log('Result number_of_reviews:', result.number_of_reviews);
+        });
 
         let html = '<div class="results-list">';
         results.forEach((result, index) => {
@@ -137,6 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <strong>Type:</strong> ${result.property_type} - ${result.room_type}<br>
                                     <strong>Location:</strong> ${result.neighbourhood}<br>
                                     <strong>Rating:</strong> ${result.review_scores_rating || 'N/A'}<br>
+                                    <strong>Reviews:</strong> ${result.number_of_reviews || '0'}<br>
                                     <strong>Accommodates:</strong> ${result.accommodates} guests
                                 </p>
                                 <div class="amenities mb-2">
@@ -240,14 +253,14 @@ document.addEventListener('DOMContentLoaded', function() {
         html += '</div>';
         resultsContainer.innerHTML = html;
 
-        // Add event listeners for expand buttons
+        // event listenery dla przyciskow
         document.querySelectorAll('.expand-btn').forEach(button => {
             button.addEventListener('click', function() {
                 const resultId = this.getAttribute('data-result-id');
                 const detailsSection = document.getElementById(`details-${resultId}`);
                 const icon = this.querySelector('i');
                 
-                // Toggle the collapse
+                // Przełączanie widocznosci sekcji
                 if (detailsSection.classList.contains('show')) {
                     detailsSection.classList.remove('show');
                     icon.classList.remove('fa-chevron-up');
