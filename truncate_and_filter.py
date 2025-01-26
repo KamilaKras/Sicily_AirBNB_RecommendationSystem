@@ -14,8 +14,5 @@ conn.commit()
 cursor.execute("SELECT COUNT(*) FROM truncated_listings")
 truncated_rows = cursor.fetchone()[0]
 
-# Weryfikacja
-print(f"Truncated Listings table: {truncated_rows:,} rows")
-
 # Zamykanie połączenia z bazą danych
 conn.close()

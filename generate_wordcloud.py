@@ -141,12 +141,6 @@ def generate_wordcloud():
             'word_frequencies': dict(word_freq.most_common(20))
         }, f)
     
-    # Print top 20 most common words and their frequencies
-    print("\nTop 20 most common words in English listing names:")
-    print("-" * 40)
-    for word, freq in word_freq.most_common(20):
-        print(f"{word}: {freq}")
-    
     conn.close()
 
 if __name__ == '__main__':
