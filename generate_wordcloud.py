@@ -8,6 +8,7 @@ import re
 from collections import Counter
 from nltk.corpus import stopwords
 import nltk
+import os
 
 # Download required NLTK data
 try:
@@ -57,34 +58,69 @@ def get_word_frequencies(listings):
     return filtered_counts
 
 def generate_wordcloud():
-    # Connect to SQLite database
+    # Connect to database
     conn = sqlite3.connect('airbnb.db')
     cursor = conn.cursor()
     
-    # Get all listing names
-    cursor.execute("SELECT name FROM truncated_listings")
-    listings = cursor.fetchall()
+    # Get all name tokens from English names only
+    cursor.execute('SELECT name_tokens FROM truncated_listings WHERE name_en IS NOT NULL')
+    rows = cursor.fetchall()
     
-    # Get word frequencies
-    word_frequencies = get_word_frequencies(listings)
+    # Comprehensive list of Italian words and location-specific terms to filter
+    italian_words = {
+        # Common Italian words
+        'casa', 'mare', 'villa', 'appartamento', 'della', 'del', 'di', 'il', 'la', 'le', 'lo',
+        'nel', 'nella', 'delle', 'dei', 'al', 'sul', 'sulla', 'con', 'e', 'ed', 'in',
+        'appartamenti', 'stanza', 'camera', 'camere', 'posto', 'posti', 'vista', 'vicino',
+        'bella', 'bello', 'bellissima', 'bellissimo', 'grande', 'piccolo', 'nuovo', 'nuova',
+        'centro', 'citta', 'città', 'mare', 'spiaggia', 'terrazza', 'giardino', 'vacanza',
+        'vacanze', 'sole', 'aria', 'cucina', 'bagno', 'letto', 'letti',
+        
+        # Location names (keep only major ones like Sicily, Etna)
+        'taormina', 'messina', 'agrigento',
+        'trapani', 'noto', 'modica', 'ortigia', 'enna', 'marsala',
+        'lipari', 'pantelleria', 'favignana', 'stromboli', 'vulcano',        
+        # Common property names
+        'casa', 'appartamento', 'palazzo', 'castello', 'masseria',
+        'casetta', 'villetta', 'villino'
+    }
     
-    # Generate word cloud
+    all_tokens = []
+    for row in rows:
+        if row[0]:  # Check if tokens exist
+            tokens = row[0].split('|')
+            # Only add non-Italian words and filter out single characters/numbers
+            tokens = [token for token in tokens if token.lower() not in italian_words and len(token) > 1]
+            all_tokens.extend(tokens)
+    
+    # Count token frequencies
+    word_freq = Counter(all_tokens)
+    
+    # Create and configure the WordCloud object
     wordcloud = WordCloud(
-        width=1200,
-        height=600,
+        width=1600, 
+        height=800,
         background_color='white',
+        max_words=100,
         min_font_size=10,
         max_font_size=150,
-        prefer_horizontal=0.7,
-        collocations=False,  # This prevents duplicate words
-        colormap='viridis',
-        regexp=r'\w+',
-        min_word_length=3,
-        max_words=100,
-        relative_scaling=0.5
-    ).generate_from_frequencies(word_frequencies)
+        colormap='viridis'  # Using a nice color scheme
+    )
     
-    # Convert the word cloud to base64 image
+    # Generate the word cloud
+    wordcloud.generate_from_frequencies(word_freq)
+    
+    # Create the plot for saving as PNG
+    plt.figure(figsize=(20,10))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis('off')
+    plt.title('Most Common Words in English Listing Names', pad=20, fontsize=16)
+    
+    # Save the PNG file
+    plt.savefig('wordcloud_english.png', bbox_inches='tight', dpi=300)
+    plt.close()
+    
+    # Create base64 encoded image for web display
     img = BytesIO()
     plt.figure(figsize=(12, 6), dpi=100)
     plt.imshow(wordcloud, interpolation='bilinear')
@@ -95,11 +131,23 @@ def generate_wordcloud():
     
     img_base64 = base64.b64encode(img.getvalue()).decode()
     
+    # Ensure the static/data directory exists
+    os.makedirs('static/data', exist_ok=True)
+    
     # Save the data to a JSON file
     with open('static/data/wordcloud_data.json', 'w', encoding='utf-8') as f:
         json.dump({
-            'image': img_base64
+            'image': img_base64,
+            'word_frequencies': dict(word_freq.most_common(20))
         }, f)
+    
+    # Print top 20 most common words and their frequencies
+    print("\nTop 20 most common words in English listing names:")
+    print("-" * 40)
+    for word, freq in word_freq.most_common(20):
+        print(f"{word}: {freq}")
+    
+    conn.close()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     generate_wordcloud()
