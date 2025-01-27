@@ -164,6 +164,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <strong>Reviews:</strong> ${result.number_of_reviews || '0'}<br>
                                     <strong>Accommodates:</strong> ${result.accommodates} guests
                                 </p>
+                                <div class="similarity-metrics mb-2">
+                                    <p class="mb-1"><strong>Similarity Scores:</strong></p>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <span class="badge bg-primary">Cosine: ${result.similarity_metrics.cosine}</span>
+                                        <span class="badge bg-success">Dice: ${result.similarity_metrics.dice}</span>
+                                        <span class="badge bg-info">Jaccard: ${result.similarity_metrics.jaccard}</span>
+                                    </div>
+                                </div>
                                 <div class="amenities mb-2">
                                     ${amenitiesHtml}
                                 </div>

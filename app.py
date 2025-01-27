@@ -277,7 +277,8 @@ def search():
                 'review_scores_location': listing[32],
                 'review_scores_value': listing[33],
                 'picture_url': default_image_url,
-                'similarity_score': similarity_score
+                'similarity_score': similarity_score,
+                'similarity_metrics': result['all_similarities']
             })
     conn.close()
     return jsonify({
