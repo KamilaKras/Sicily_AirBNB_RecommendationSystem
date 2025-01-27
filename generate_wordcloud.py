@@ -82,7 +82,7 @@ def generate_wordcloud():
         width=1600, 
         height=800,
         background_color='white',
-        max_words=100,
+        max_words=500,
         min_font_size=10,
         max_font_size=150,
         colormap='viridis'
