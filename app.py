@@ -145,23 +145,40 @@ def search():
                 query_conditions.append("accommodates <= ?")
                 query_params.append(accommodates_max)
                 
-        if 'room_types' in filters:
-            room_types = filters['room_types']
-            placeholders = ','.join(['?' for _ in room_types])
-            query_conditions.append(f"room_type IN ({placeholders})")
-            query_params.extend(room_types)
+        if 'bedrooms_range' in filters:
+            bedrooms_min, bedrooms_max = filters['bedrooms_range']
+            if bedrooms_min is not None:
+                query_conditions.append("bedrooms >= ?")
+                query_params.append(bedrooms_min)
+                
+            if bedrooms_max is not None:
+                query_conditions.append("bedrooms <= ?")
+                query_params.append(bedrooms_max)
+                
+        if 'beds_range' in filters:
+            beds_min, beds_max = filters['beds_range']
+            if beds_min is not None:
+                query_conditions.append("beds >= ?")
+                query_params.append(beds_min)
+                
+            if beds_max is not None:
+                query_conditions.append("beds <= ?")
+                query_params.append(beds_max)
+                
+        if 'room_type' in filters:
+            room_type = filters['room_type']
+            query_conditions.append("room_type = ?")
+            query_params.append(room_type)
             
-        if 'property_types' in filters:
-            property_types = filters['property_types']
-            placeholders = ','.join(['?' for _ in property_types])
-            query_conditions.append(f"property_type IN ({placeholders})")
-            query_params.extend(property_types)
+        if 'property_type' in filters:
+            property_type = filters['property_type']
+            query_conditions.append("property_type = ?")
+            query_params.append(property_type)
             
-        if 'neighbourhoods' in filters:
-            neighbourhoods = filters['neighbourhoods']
-            placeholders = ','.join(['?' for _ in neighbourhoods])
-            query_conditions.append(f"neighbourhood_cleansed IN ({placeholders})")
-            query_params.extend(neighbourhoods)
+        if 'neighbourhood_cleansed' in filters:
+            neighbourhood = filters['neighbourhood_cleansed']
+            query_conditions.append("neighbourhood_cleansed = ?")
+            query_params.append(neighbourhood)
             
         if 'amenities' in filters:
             amenities = filters['amenities']
@@ -169,6 +186,11 @@ def search():
                 query_conditions.append("amenities LIKE ?")
                 query_params.append(f"%{amenity}%")
                 
+        if 'host_response_time' in filters:
+            host_response_time = filters['host_response_time']
+            query_conditions.append("host_response_time = ?")
+            query_params.append(host_response_time)
+            
         if 'superhost' in filters:
             superhost = filters['superhost']
             value = 't' if superhost else 'f'
