@@ -118,4 +118,7 @@ class SearchEngine:
                 })
         
         results.sort(key=lambda x: x['similarity_score'], reverse=True)
-        return results[:top_k]
+        return {
+            'total_matches': len(results),
+            'results': results[:top_k]
+        }

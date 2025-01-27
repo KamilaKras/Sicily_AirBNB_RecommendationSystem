@@ -105,9 +105,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Got response:', response.status);
             return response.json();
         })
-        .then(results => {
-            console.log('Got results:', results);
-            displayResults(results);
+        .then(response => {
+            console.log('Got response:', response);
+            displayResults(response);
         })
         .catch(error => {
             console.error('Error:', error);
@@ -115,9 +115,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function displayResults(results) {
-        console.log('Received results:', results);
+    function displayResults(response) {
+        console.log('Received response:', response);
         const resultsContainer = document.getElementById('results-container');
+        const results = response.results;
+        const totalMatches = response.total_matches;
+        const totalFiltered = response.total_filtered;
+
         if (!results || results.length === 0) {
             resultsContainer.innerHTML = '<p>No results found.</p>';
             return;
@@ -127,7 +131,15 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Result number_of_reviews:', result.number_of_reviews);
         });
 
-        let html = '<div class="results-list">';
+        let html = `
+            <div class="alert alert-info mb-3">
+                Found ${totalMatches} listing${totalMatches !== 1 ? 's' : ''} matching your search query.
+                ${totalFiltered !== totalMatches ? 
+                    `Showing top ${totalFiltered} results after applying filters.` : 
+                    ''}
+            </div>
+            <div class="results-list">
+        `;
         results.forEach((result, index) => {
             const amenitiesHtml = result.amenities.slice(0, 5).map(amenity => 
                 `<span class="badge bg-secondary me-1">${amenity}</span>`

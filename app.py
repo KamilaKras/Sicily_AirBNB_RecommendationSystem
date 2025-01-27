@@ -4,9 +4,8 @@ import os
 import json
 import sqlite3
 
-# Inicjalizacja aplikacji Flask i wyszukiwania
+# Inicjalizacja aplikacji Flasapp.config['DATABASE'] = 'airbnb.db'k i wyszukiwania
 app = Flask(__name__)
-app.config['DATABASE'] = 'airbnb.db'
 
 # Inicjalizacja silnika wyszukiwania
 search_engine = SearchEngine('airbnb.db')
@@ -102,7 +101,9 @@ def search():
     if similarity_metric != search_engine.similarity_measure:
         search_engine.similarity_measure = similarity_metric
     
-    results = search_engine.search(query)
+    search_results = search_engine.search(query)
+    results = search_results['results']
+    total_matches = search_results['total_matches']
     
     filtered_results = []
     conn = get_db_connection()
@@ -279,7 +280,11 @@ def search():
                 'similarity_score': similarity_score
             })
     conn.close()
-    return jsonify(filtered_results)
+    return jsonify({
+        'total_matches': total_matches,
+        'total_filtered': len(filtered_results),
+        'results': filtered_results
+    })
 
 # Strona statystyk
 @app.route('/statistics')
